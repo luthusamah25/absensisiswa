@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Absensi Siswa Modern - Vinal</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+<style>
+:root{
+  --bg:#f0f4f8; --card:#e1e6ea; --muted:#6b7280; --accent:#2563eb;
+  --success:#16a34a; --danger:#dc2626; --text:#111;
+}
+[data-theme="dark"]{
+  --bg:#111; --card:#1f1f1f; --muted:#aaa; --accent:#3b82f6;
+  --success:#22c55e; --danger:#ef4444; --text:#f3f3f3;
+}
+body,html{
+  margin:0; height:100%; font-family:'Segoe UI',sans-serif;
+  background:linear-gradient(rgba(13, 103, 200, 0.7), rgba(255,255,255,0.7)), url('background.jpg') no-repeat center center fixed;
+  background-size: cover; color:var(--text); transition:0.3s; overflow-x:hidden;
+}
+body[data-theme="dark"]{
+  background:linear-gradient(rgba(17,17,17,0.7), rgba(31,31,31,0.7)), url('background.jpg') no-repeat center center fixed;
+  background-size: cover;
+}
+body::before{
+  content:""; position:fixed; top:0; left:0; width:100%; height:100%;
+  background:linear-gradient(120deg, rgba(255,255,255,0.2), rgba(255,255,255,0.05), rgba(255,255,255,0.2));
+  pointer-events:none; z-index:0; animation: moveBG 20s linear infinite;
+}
+/* LOGO BURAM DI BACKGROUND */
+body::after {
+  content:"";
+  position:fixed;
+  top:50%;
+  left:50%;
+  width:300px;
+  height:300px;
+  background: url('sekolah-removebg-preview.png') no-repeat center center;
+  background-size:contain;
+  transform:translate(-50%,-50%);
+  opacity:0.1;
+  filter: blur(8px);
+  pointer-events:none;
+  z-index:0;
+}
+@keyframes moveBG{0%{background-position:0 0;}50%{background-position:100% 50%;}100%{background-position:0 100%;}}
+.container{ max-width:900px; margin:20px auto; padding:30px; background:var(--card); border-radius:16px; box-shadow:0 10px 25px rgba(0,0,0,.1); transition: background 0.3s; position: relative; z-index:1;}
+h1{margin:0 0 16px;font-size:2.5rem;color:var(--accent); text-align:center;}
+h2{margin-top:24px;font-size:1.2rem;color:var(--accent);}
+.muted{color:var(--muted); text-align:center;}
+input,select,button{padding:10px 16px; border:1px solid #ccc; border-radius:12px; font-size:1rem; transition:0.3s;}
+input:focus{border-color:var(--accent);outline:none;box-shadow:0 0 10px rgba(37,99,235,.3);}
+button{cursor:pointer; background:var(--accent); color:#fff; border:none; box-shadow:0 6px 12px rgba(0,0,0,.15); border-radius:12px; transition:0.3s;}
+button:hover{background:#1e40af; transform:translateY(-2px);}
+button.ghost{background:transparent;color:var(--accent);border:1px solid var(--accent);}
+button.ghost:hover{background:var(--accent);color:#fff;}
+table{width:100%;border-collapse:collapse;margin-top:16px;}
+th,td{padding:12px;border:1px solid #ccc;text-align:left;}
+th{background:#eee;}
+.hidden{display:none;}
+.row{display:flex;gap:12px;flex-wrap:wrap;margin:12px 0;justify-content:center;}
+.toast{position:fixed;bottom:20px;right:20px;padding:14px 22px;border-radius:12px;color:#fff; box-shadow:0 6px 20px rgba(0,0,0,.2);opacity:0;transform:translateY(20px); transition:all 0.4s;}
+.toast.show{opacity:1;transform:translateY(0);}
+.pop{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%); width:120px;height:120px;border-radius:50%;display:flex;align-items:center; justify-content:center;font-size:56px;color:#fff;opacity:0;pointer-events:none;transition:all 0.5s;}
+.pop.show { animation: bouncePop 0.5s ease forwards; }
+.pop.success{background:var(--success);}
+.pop.fail{background:var(--danger);}
+@keyframes bouncePop{0%{transform:translate(-50%,-50%) scale(0.5);opacity:0;}50%{transform:translate(-50%,-50%) scale(1.2);opacity:1;}80%{transform:translate(-50%,-50%) scale(0.95);}100%{transform:translate(-50%,-50%) scale(1);}}
+@keyframes pulseInput { 0% { box-shadow: 0 0 0 rgba(37,99,235,0.4); } 50% { box-shadow: 0 0 15px rgba(37,99,235,0.7); } 100% { box-shadow: 0 0 0 rgba(37,99,235,0.4); } }
+#loginCode.animate-pulse { animation: pulseInput 1.5s infinite; }
+#loginPage{display:flex;flex-direction:column;justify-content:center;align-items:center;height:100%;}
+#loginPage input#loginCode{width:250px;font-size:1.3rem;text-align:center;}
+#loginPage p.muted{margin-bottom:10px;}
+#loginFocus:hover{transform:translateY(-2px) scale(1.1);box-shadow:0 8px 16px rgba(0,0,0,.2);}
+.dark-toggle{position:fixed;top:12px;right:12px;cursor:pointer;padding:8px 14px;background:var(--accent);color:#fff;border-radius:8px;box-shadow:0 4px 12px rgba(0,0,0,.2);transition:0.3s;}
+.dark-toggle:hover{background:#1e40af;transform:translateY(-2px);}
+#adminLoginForm{max-width:300px;margin-top:10px;flex-direction:column;gap:10px;overflow:hidden;transition:0.5s;}
+#adminLoginForm.hidden{max-height:0;padding:0;margin:0;opacity:0;}
+#adminLoginForm.show{max-height:200px;opacity:1;margin-top:10px;padding-top:0;}
+.pagination-controls button{margin:0 5px;}
+@media(max-width:500px){
+  h1{font-size:2rem;}
+  input,button{width:100%; font-size:1.1rem;}
+}
+</style>
+</head>
+<body>
+
+<button class="dark-toggle" id="toggleDark">Dark Mode</button>
+<div id="popUp" class="pop"></div>
+<div id="toast" class="toast"></div>
+
+<!-- Login Page -->
+<div id="loginPage" class="container">
+  <img src="sekolah-removebg-preview.png" alt="Logo Sekolah" style="width:100px;margin-bottom:16px;">
+  <h1>Absensi Siswa</h1>
+  <p class="muted">Masukkan kode siswa untuk absen:</p>
+  <div class="row">
+    <input id="loginCode" type="text" placeholder="Kode siswa..." autofocus>
+    <button id="loginFocus" class="ghost">Fokus</button>
+  </div>
+  <p class="muted">Tekan <b>Enter</b> untuk absen.</p>
+  <div class="row">
+    <button id="showAdminFormBtn" class="ghost">Masuk Admin</button>
+  </div>
+  <div id="adminLoginForm" class="hidden row">
+    <input id="adminPasswordInput" type="password" placeholder="Password admin">
+    <button id="adminLoginBtn">Login</button>
+  </div>
+</div>
+
+<!-- Admin Page -->
+<div id="adminPage" class="container hidden">
+  <img src="sekolah-removebg-preview.png" alt="Logo Sekolah" style="width:100px;margin-bottom:16px;">
+  <h1>Admin Panel</h1>
+  <p class="muted">Kelola siswa & laporan absensi</p>
+  <div class="row">
+    <button onclick="showTab('students')">Data Siswa</button>
+    <button onclick="showTab('attendance')">Laporan Absensi</button>
+    <button class="ghost" onclick="backToLogin()">Keluar</button>
+  </div>
+
+  <!-- Data Siswa -->
+  <div id="tab-students">
+    <h2>Data Siswa</h2>
+    <div class="row">
+      <input id="studentName" placeholder="Nama siswa">
+      <input id="studentCode" placeholder="Kode siswa">
+      <select id="studentClass">
+        <option value="">Pilih Kelas</option>
+        <option>1A</option><option>1B</option><option>2A</option><option>2B</option>
+      </select>
+      <button id="addStudentBtn">Tambah / Simpan</button>
+    </div>
+    <div class="row">
+      <button id="exportStudentsBtn">Export Excel</button>
+      <input type="file" id="importFile" style="display:none" accept=".xlsx">
+      <button id="importBtn">Import Excel</button>
+      <button id="downloadTemplateBtn">Download Template</button>
+    </div>
+    <table>
+      <thead><tr><th>Nama</th><th>Kode</th><th>Kelas</th><th>Aksi</th></tr></thead>
+      <tbody id="studentTable"></tbody>
+    </table>
+    <div class="row pagination-controls" style="justify-content:center;margin-top:10px;">
+      <button id="prevPage" class="ghost">Previous</button>
+      <span id="pageInfo"></span>
+      <button id="nextPage" class="ghost">Next</button>
+    </div>
+  </div>
+
+  <!-- Laporan Absensi -->
+  <div id="tab-attendance" class="hidden">
+    <h2>Laporan Absensi</h2>
+    <div class="row">
+      <input type="text" id="searchAttendance" placeholder="Cari nama/kode...">
+      <select id="filterClass"><option value="">Semua Kelas</option></select>
+      <button id="exportAttendanceBtn">Export Excel</button>
+    </div>
+    <table>
+      <thead><tr><th>Nama</th><th>Kode</th><th>Kelas</th><th>Waktu</th></tr></thead>
+      <tbody id="attendanceTable"></tbody>
+    </table>
+    <div class="row pagination-controls" id="attendancePaginationControls" style="justify-content:center;margin-top:12px;">
+      <button id="prevAttendancePage" class="ghost">Previous</button>
+      <span id="attendancePageInfo"></span>
+      <button id="nextAttendancePage" class="ghost">Next</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// === DATA & VARIABLES ===
+let students=JSON.parse(localStorage.getItem('students')||'[]');
+let attendance=JSON.parse(localStorage.getItem('attendance')||'[]');
+let editIndex=null;
+let currentPage=1; const rowsPerPage=5;
+let attendancePage=1; const attendanceRowsPerPage=10;
+const adminPassword="admin123";
+
+// DOM
+const loginPage=document.getElementById('loginPage');
+const adminPage=document.getElementById('adminPage');
+const loginCode=document.getElementById('loginCode');
+const loginFocus=document.getElementById('loginFocus');
+const showAdminFormBtn=document.getElementById('showAdminFormBtn');
+const adminLoginForm=document.getElementById('adminLoginForm');
+const adminPasswordInput=document.getElementById('adminPasswordInput');
+const adminLoginBtn=document.getElementById('adminLoginBtn');
+const searchAttendance=document.getElementById('searchAttendance');
+const filterClass=document.getElementById('filterClass');
+const toast=document.getElementById('toast');
+const toggleDark=document.getElementById('toggleDark');
+const studentTable=document.getElementById('studentTable');
+const popUp=document.getElementById('popUp');
+
+// === DARK MODE ===
+toggleDark.addEventListener('click',()=>{ 
+  if(document.documentElement.getAttribute('data-theme')==='dark') document.documentElement.removeAttribute('data-theme');
+  else document.documentElement.setAttribute('data-theme','dark');
+});
+
+// === PULSE INPUT ===
+window.addEventListener('load',()=>{ loginCode.focus(); loginCode.classList.add('animate-pulse'); setTimeout(()=>loginCode.classList.remove('animate-pulse'),3000); });
+
+// === TOAST & POPUP & TTS ===
+function showToast(msg,type='success'){ toast.textContent=msg; toast.style.backgroundColor= type==='success'? 'var(--success)':'var(--danger)'; toast.classList.add('show'); setTimeout(()=>toast.classList.remove('show'),2500); }
+function showPop(success=true){ popUp.className='pop show '+(success?'success':'fail'); popUp.textContent= success?'✔':'✖'; setTimeout(()=>{ popUp.className='pop' },1000); }
+function playBeep(ok=true){ window.speechSynthesis.cancel(); const msg = new SpeechSynthesisUtterance(ok ? "OK" : "Maaf gagal"); msg.lang='id-ID'; window.speechSynthesis.speak(msg); }
+
+// === ABSENSI SISWA ===
+function markAttendance(code){
+  const s = students.find(x=>x.code===code);
+  if(!s){ showToast(`Kode ${code} tidak terdaftar!`,'danger'); playBeep(false); showPop(false); return; }
+  const today = new Date().toLocaleDateString(); 
+  if(attendance.some(a=>a.code===code && new Date(a.time).toLocaleDateString()===today)){
+    showToast(`Siswa ${s.name} sudah absen hari ini!`,'danger'); playBeep(false); showPop(false); return;
+  }
+  const now = new Date();
+  attendance.push({name:s.name,code:s.code,class:s.class,time:now.toLocaleString()});
+  localStorage.setItem('attendance',JSON.stringify(attendance));
+  showToast(`OK: ${s.name}`,'success'); playBeep(true); showPop(true);
+}
+
+// === LOGIN SISWA ===
+loginCode.addEventListener('keydown',e=>{ if(e.key==='Enter'){ markAttendance(loginCode.value); loginCode.value=''; } });
+loginFocus.addEventListener('click',()=>loginCode.focus());
+
+// === ADMIN LOGIN ===
+showAdminFormBtn.addEventListener('click',()=>{ adminLoginForm.classList.toggle('hidden'); adminLoginForm.classList.toggle('show'); adminPasswordInput.value=''; if(!adminLoginForm.classList.contains('hidden')) adminPasswordInput.focus(); });
+adminPasswordInput.addEventListener('keydown',e=>{ if(e.key==='Enter') adminLoginBtn.click(); });
+adminLoginBtn.addEventListener('click',()=>{ if(adminPasswordInput.value === adminPassword){ loginPage.classList.add('hidden'); adminPage.classList.remove('hidden'); renderStudents(); renderAttendance(); showToast("Login admin berhasil","success"); adminPasswordInput.value=''; } else{ showToast("Password salah!","danger"); adminPasswordInput.value=''; adminPasswordInput.focus(); } });
+function backToLogin(){ adminPage.classList.add('hidden'); loginPage.classList.remove('hidden'); loginCode.focus(); showTab('students'); currentPage=1; attendancePage=1; }
+function showTab(tab){ document.getElementById('tab-students').classList.add('hidden'); document.getElementById('tab-attendance').classList.add('hidden'); document.getElementById('tab-'+tab).classList.remove('hidden'); if(tab==='students') renderStudents(); if(tab==='attendance') renderAttendance(); }
+
+// === TAMBAH / EDIT SISWA ===
+document.getElementById('addStudentBtn').addEventListener('click',()=>{
+  const name=document.getElementById('studentName').value;
+  const code=document.getElementById('studentCode').value;
+  const cls=document.getElementById('studentClass').value;
+  if(!name||!code||!cls){showToast('Lengkapi data','danger');return;}
+  if(editIndex===null && students.some(s=>s.code===code)){showToast('Kode sudah terdaftar!','danger'); return;}
+  if(editIndex!==null){ students[editIndex]={name,code,class:cls}; editIndex=null }
+  else{ students.push({name,code,class:cls}) }
+  localStorage.setItem('students',JSON.stringify(students)); currentPage=1;
+  renderStudents(); document.getElementById('studentName').value=''; document.getElementById('studentCode').value=''; document.getElementById('studentClass').value='';
+});
+
+// === EDIT / HAPUS SISWA ===
+studentTable.addEventListener('click', e=>{
+  const idx=+e.target.dataset.idx;
+  if(e.target.matches('button.delBtn')){ if(confirm(`Hapus siswa ${students[idx].name}?`)){ students.splice(idx,1); localStorage.setItem('students',JSON.stringify(students)); renderStudents(); } }
+  if(e.target.matches('button.editBtn')){ document.getElementById('studentName').value=students[idx].name; document.getElementById('studentCode').value=students[idx].code; document.getElementById('studentClass').value=students[idx].class; editIndex=idx; }
+});
+
+// === RENDER SISWA DENGAN PAGINATION ===
+function renderStudents(){
+  studentTable.innerHTML=''; const fragment=document.createDocumentFragment();
+  const start=(currentPage-1)*rowsPerPage; const end=start+rowsPerPage;
+  const pageData=students.slice(start,end);
+  pageData.forEach((s,idx)=>{
+    const tr=document.createElement('tr');
+    tr.innerHTML=`<td>${s.name}</td><td>${s.code}</td><td>${s.class}</td>
+      <td><button class="editBtn" data-idx="${start+idx}">Edit</button>
+      <button class="delBtn" data-idx="${start+idx}">Hapus</button></td>`;
+    fragment.appendChild(tr);
+  });
+  studentTable.appendChild(fragment);
+  const totalPages=Math.ceil(students.length/rowsPerPage)||1;
+  document.getElementById('pageInfo').textContent=`Page ${currentPage} / ${totalPages}`;
+  document.getElementById('prevPage').disabled=currentPage===1;
+  document.getElementById('nextPage').disabled=currentPage===totalPages;
+  populateClassFilter();
+}
+document.getElementById('prevPage').addEventListener('click',()=>{ if(currentPage>1){ currentPage--; renderStudents(); } });
+document.getElementById('nextPage').addEventListener('click',()=>{ if(currentPage<Math.ceil(students.length/rowsPerPage)){ currentPage++; renderStudents(); } });
+
+// === FILTER KELAS ===
+function populateClassFilter(){
+  const classes=[...new Set(students.map(s=>s.class))].sort();
+  filterClass.innerHTML='<option value="">Semua Kelas</option>';
+  classes.forEach(c=>{ const opt=document.createElement('option'); opt.value=c; opt.textContent=c; filterClass.appendChild(opt); });
+}
+
+// === RENDER ABSENSI DENGAN PAGINATION ===
+function renderAttendance(){
+  const tbody=document.getElementById('attendanceTable'); tbody.innerHTML='';
+  const q=(searchAttendance.value||'').toLowerCase(); const cls=filterClass.value;
+  const filtered=attendance.filter(a=>{ if(cls && a.class!==cls) return false; if(q && !((a.name&&a.name.toLowerCase().includes(q))||(a.code&&a.code.toLowerCase().includes(q)))) return false; return true; });
+  const start=(attendancePage-1)*attendanceRowsPerPage; const end=start+attendanceRowsPerPage;
+  const paginated=filtered.slice(start,end);
+  const fragment=document.createDocumentFragment();
+  paginated.forEach(a=>{ const tr=document.createElement('tr'); tr.innerHTML=`<td>${a.name}</td><td>${a.code}</td><td>${a.class}</td><td>${a.time}</td>`; fragment.appendChild(tr); });
+  tbody.appendChild(fragment);
+  const totalPages=Math.ceil(filtered.length/attendanceRowsPerPage)||1;
+  document.getElementById('attendancePageInfo').textContent=`Page ${attendancePage} / ${totalPages}`;
+  document.getElementById('prevAttendancePage').disabled=attendancePage===1;
+  document.getElementById('nextAttendancePage').disabled=attendancePage===totalPages;
+}
+
+// Event Pagination Attendance
+document.getElementById('prevAttendancePage').addEventListener('click',()=>{ if(attendancePage>1){ attendancePage--; renderAttendance(); } });
+document.getElementById('nextAttendancePage').addEventListener('click',()=>{
+  const q=(searchAttendance.value||'').toLowerCase(); const cls=filterClass.value;
+  const filtered=attendance.filter(a=>{ if(cls && a.class!==cls) return false; if(q && !((a.name&&a.name.toLowerCase().includes(q))||(a.code&&a.code.toLowerCase().includes(q)))) return false; return true; });
+  if(attendancePage<Math.ceil(filtered.length/attendanceRowsPerPage)){ attendancePage++; renderAttendance(); }
+});
+searchAttendance.addEventListener('input',()=>{ attendancePage=1; renderAttendance(); });
+filterClass.addEventListener('change',()=>{ attendancePage=1; renderAttendance(); });
+
+// === EXPORT / IMPORT EXCEL ===
+document.getElementById('exportStudentsBtn').addEventListener('click',()=>{ const ws=XLSX.utils.json_to_sheet(students); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Siswa"); XLSX.writeFile(wb,"data_siswa.xlsx"); });
+document.getElementById('exportAttendanceBtn').addEventListener('click',()=>{ const ws=XLSX.utils.json_to_sheet(attendance); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,"Absensi"); XLSX.writeFile(wb,"data_absensi.xlsx"); });
+document.getElementById('importBtn').addEventListener('click',()=>{ document.getElementById('importFile').click(); });
+document.getElementById('importFile').addEventListener('change',e=>{
+  const file=e.target.files[0]; if(!file) return; const reader=new FileReader();
+  reader.onload=function(evt){ const data=new Uint8Array(evt.target.result); const wb=XLSX.read(data,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]]; const imported=XLSX.utils.sheet_to_json(ws); students=imported; localStorage.setItem('students',JSON.stringify(students)); currentPage=1; renderStudents(); showToast("Import berhasil!","success"); }
+  reader.readAsArrayBuffer(file);
+});
+document.getElementById('downloadTemplateBtn').addEventListener('click',()=>{ const template=[{name:"Nama Contoh",code:"12345",class:"1A"}]; const ws=XLSX.utils.json_to_sheet(template); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template"); XLSX.writeFile(wb,"template_siswa.xlsx"); });
+</script>
+</body>
+</html>

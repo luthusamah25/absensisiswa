@@ -320,5 +320,35 @@ document.getElementById('importFile').addEventListener('change',e=>{
 });
 document.getElementById('downloadTemplateBtn').addEventListener('click',()=>{ const template=[{name:"Nama Contoh",code:"12345",class:"1A"}]; const ws=XLSX.utils.json_to_sheet(template); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template"); XLSX.writeFile(wb,"template_siswa.xlsx"); });
 </script>
+<!-- Tambah script Firebase -->
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+<script>
+  const firebaseConfig = {
+    apiKey: "AIzaSyDMnGY-8ahKSQHFrKaAWqXq02yx5rCn6pw",
+    authDomain: "absen-siswa-8bbab.firebaseapp.com",
+    databaseURL: "https://PROJECT_ID.firebaseio.com",
+    projectId: "absen-siswa-8bbab",
+    storageBucket: "absen-siswa-8bbab.firebasestorage.app",
+    messagingSenderId: "802924937881",
+    appId: "1:802924937881:web:ca0675b28495c0ea922e08"
+  };
+
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // Simpan siswa
+  function saveStudents(){
+    db.ref("students").set(students);
+  }
+  // Ambil siswa
+  function loadStudents(){
+    db.ref("students").once("value", snapshot=>{
+      if(snapshot.exists()) students = snapshot.val();
+      renderStudents();
+    });
+  }
+</script>
+
 </body>
 </html>

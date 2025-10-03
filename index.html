@@ -324,15 +324,15 @@ document.getElementById('downloadTemplateBtn').addEventListener('click',()=>{ co
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
 <script>
-  const firebaseConfig = {
-    apiKey: "AIzaSyDMnGY-8ahKSQHFrKaAWqXq02yx5rCn6pw",
-    authDomain: "absen-siswa-8bbab.firebaseapp.com",
-    databaseURL: "https://PROJECT_ID.firebaseio.com",
-    projectId: "absen-siswa-8bbab",
-    storageBucket: "absen-siswa-8bbab.firebasestorage.app",
-    messagingSenderId: "802924937881",
-    appId: "1:802924937881:web:ca0675b28495c0ea922e08"
-  };
+const firebaseConfig = {
+  apiKey: "AIzaSyDMnGY-8ahKSQHFrKaAWqXq02yx5rCn6pw",
+  authDomain: "absen-siswa-8bbab.firebaseapp.com",
+  projectId: "absen-siswa-8bbab",
+  storageBucket: "absen-siswa-8bbab.firebasestorage.app",
+  messagingSenderId: "802924937881",
+  appId: "1:802924937881:web:ca0675b28495c0ea922e08",
+  measurementId: "G-YY90J2F8DW"
+};
 
   const app = firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
@@ -343,7 +343,7 @@ document.getElementById('downloadTemplateBtn').addEventListener('click',()=>{ co
   }
   // Ambil siswa
   function loadStudents(){
-    db.ref("students").once("value", snapshot=>{
+    db.ref("students").on("value", snapshot=>{
       if(snapshot.exists()) students = snapshot.val();
       renderStudents();
     });

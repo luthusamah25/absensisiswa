@@ -392,7 +392,14 @@ const firebaseConfig = {
 
   const app = firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
-
+// === TEST KONEKSI FIREBASE ===
+db.ref(".info/connected").on("value", snapshot => {
+  if (snapshot.val() === true) {
+    showToast("Firebase: Online ✔", "success");
+  } else {
+    showToast("Firebase: Offline ✖", "danger");
+  }
+});
   // Simpan siswa
 function saveStudent(s){
   db.ref("students/" + s.code).set(s);
@@ -437,3 +444,4 @@ function loadAttendance(){
 
 </body>
 </html>
+

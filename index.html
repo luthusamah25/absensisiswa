@@ -178,7 +178,6 @@ let editIndex=null;
 let currentPage=1; const rowsPerPage=5;
 let attendancePage=1; const attendanceRowsPerPage=10;
 const adminPassword="admin123";
-
 // DOM
 const loginPage=document.getElementById('loginPage');
 const adminPage=document.getElementById('adminPage');
@@ -218,10 +217,13 @@ function markAttendance(code){
     showToast(`Siswa ${s.name} sudah absen hari ini!`,'danger'); playBeep(false); showPop(false); return;
   }
   const now = new Date();
-  attendance.push({name:s.name,code:s.code,class:s.class,time:now.toLocaleString()});
-  localStorage.setItem('attendance',JSON.stringify(attendance));
+  const entry = {name:s.name, code:s.code, class:s.class, time:now.toLocaleString()};
+attendance.push(entry);
+localStorage.setItem('attendance', JSON.stringify(attendance));
+saveAttendance(entry);       // <--- Tambahkan ini agar tersimpan ke Firebase
   showToast(`OK: ${s.name}`,'success'); playBeep(true); showPop(true);
 }
+
 
 // === LOGIN SISWA ===
 loginCode.addEventListener('keydown',e=>{ if(e.key==='Enter'){ markAttendance(loginCode.value); loginCode.value=''; } });
@@ -230,7 +232,14 @@ loginFocus.addEventListener('click',()=>loginCode.focus());
 // === ADMIN LOGIN ===
 showAdminFormBtn.addEventListener('click',()=>{ adminLoginForm.classList.toggle('hidden'); adminLoginForm.classList.toggle('show'); adminPasswordInput.value=''; if(!adminLoginForm.classList.contains('hidden')) adminPasswordInput.focus(); });
 adminPasswordInput.addEventListener('keydown',e=>{ if(e.key==='Enter') adminLoginBtn.click(); });
-adminLoginBtn.addEventListener('click',()=>{ if(adminPasswordInput.value === adminPassword){ loginPage.classList.add('hidden'); adminPage.classList.remove('hidden'); renderStudents(); renderAttendance(); showToast("Login admin berhasil","success"); adminPasswordInput.value=''; } else{ showToast("Password salah!","danger"); adminPasswordInput.value=''; adminPasswordInput.focus(); } });
+adminLoginBtn.addEventListener('click',()=>{ if(adminPasswordInput.value === adminPassword){
+  loginPage.classList.add('hidden');
+  adminPage.classList.remove('hidden');
+  loadStudents();
+  loadAttendance();
+  showToast("Login admin berhasil","success");
+  adminPasswordInput.value='';
+} else{ showToast("Password salah!","danger"); adminPasswordInput.value=''; adminPasswordInput.focus(); } });
 function backToLogin(){ adminPage.classList.add('hidden'); loginPage.classList.remove('hidden'); loginCode.focus(); showTab('students'); currentPage=1; attendancePage=1; }
 function showTab(tab){ document.getElementById('tab-students').classList.add('hidden'); document.getElementById('tab-attendance').classList.add('hidden'); document.getElementById('tab-'+tab).classList.remove('hidden'); if(tab==='students') renderStudents(); if(tab==='attendance') renderAttendance(); }
 
@@ -243,14 +252,27 @@ document.getElementById('addStudentBtn').addEventListener('click',()=>{
   if(editIndex===null && students.some(s=>s.code===code)){showToast('Kode sudah terdaftar!','danger'); return;}
   if(editIndex!==null){ students[editIndex]={name,code,class:cls}; editIndex=null }
   else{ students.push({name,code,class:cls}) }
-  localStorage.setItem('students',JSON.stringify(students)); currentPage=1;
-  renderStudents(); document.getElementById('studentName').value=''; document.getElementById('studentCode').value=''; document.getElementById('studentClass').value='';
+  localStorage.setItem('students',JSON.stringify(students));
+saveStudents(); // <--- Tambahan simpan ke Firebase
+currentPage=1;
+renderStudents();
+
+
 });
 
 // === EDIT / HAPUS SISWA ===
 studentTable.addEventListener('click', e=>{
   const idx=+e.target.dataset.idx;
-  if(e.target.matches('button.delBtn')){ if(confirm(`Hapus siswa ${students[idx].name}?`)){ students.splice(idx,1); localStorage.setItem('students',JSON.stringify(students)); renderStudents(); } }
+if(e.target.matches('button.delBtn')){
+  const s = students[idx];
+  if(confirm(`Hapus siswa ${s.name}?`)){
+    students.splice(idx,1);
+    localStorage.setItem('students',JSON.stringify(students));
+    deleteStudent(s.code); // <--- hapus per kode di Firebase
+    renderStudents();
+  }
+}
+
   if(e.target.matches('button.editBtn')){ document.getElementById('studentName').value=students[idx].name; document.getElementById('studentCode').value=students[idx].code; document.getElementById('studentClass').value=students[idx].class; editIndex=idx; }
 });
 
@@ -275,7 +297,40 @@ function renderStudents(){
 }
 document.getElementById('prevPage').addEventListener('click',()=>{ if(currentPage>1){ currentPage--; renderStudents(); } });
 document.getElementById('nextPage').addEventListener('click',()=>{ if(currentPage<Math.ceil(students.length/rowsPerPage)){ currentPage++; renderStudents(); } });
+// --- 6. FUNGSI EXPORT EXCEL ---
+function exportStudents(){
+  db.ref("students").once("value").then(snapshot=>{
+    if(!snapshot.exists()){ showToast("Data siswa kosong","danger"); return; }
+    const data = Object.values(snapshot.val());
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Siswa");
+    XLSX.writeFile(wb,"Data_Siswa.xlsx");
+  });
+}
 
+function exportAttendance(){
+  db.ref("attendance").once("value").then(snapshot=>{
+    if(!snapshot.exists()){ showToast("Data absensi kosong","danger"); return; }
+    let all=[];
+    snapshot.forEach(dateSnap=>{
+      const date=dateSnap.key;
+      const entries=dateSnap.val();
+      Object.values(entries).forEach(e=>{
+        all.push({...e,date});
+      });
+    });
+    const ws = XLSX.utils.json_to_sheet(all);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Absensi");
+    XLSX.writeFile(wb,"Data_Absensi.xlsx");
+  });
+}
+
+// --- 7. Event listener tombol ---
+document.getElementById("addStudentBtn").addEventListener("click",()=>{ /* tambah/edit siswa */ });
+document.getElementById("exportStudentsBtn").addEventListener("click", exportStudents);
+document.getElementById("exportAttendanceBtn").addEventListener("click", exportAttendance);
 // === FILTER KELAS ===
 function populateClassFilter(){
   const classes=[...new Set(students.map(s=>s.class))].sort();
@@ -321,8 +376,9 @@ document.getElementById('importFile').addEventListener('change',e=>{
 document.getElementById('downloadTemplateBtn').addEventListener('click',()=>{ const template=[{name:"Nama Contoh",code:"12345",class:"1A"}]; const ws=XLSX.utils.json_to_sheet(template); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Template"); XLSX.writeFile(wb,"template_siswa.xlsx"); });
 </script>
 <!-- Tambah script Firebase -->
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js"></script>
-<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-database-compat.js"></script>
+
 <script>
 const firebaseConfig = {
   apiKey: "AIzaSyDMnGY-8ahKSQHFrKaAWqXq02yx5rCn6pw",
@@ -338,16 +394,45 @@ const firebaseConfig = {
   const db = firebase.database();
 
   // Simpan siswa
-  function saveStudents(){
-    db.ref("students").set(students);
-  }
+function saveStudent(s){
+  db.ref("students/" + s.code).set(s);
+}
+
   // Ambil siswa
-  function loadStudents(){
-    db.ref("students").on("value", snapshot=>{
-      if(snapshot.exists()) students = snapshot.val();
+function loadStudents(){
+  db.ref("students").on("value", snapshot=>{
+    if(snapshot.exists()){
+      students = Object.values(snapshot.val());
+      localStorage.setItem('students', JSON.stringify(students));
       renderStudents();
-    });
-  }
+    }
+  });
+}
+  // Simpan absensi
+function saveAttendance(entry){
+  const today = new Date().toISOString().slice(0,10); // yyyy-mm-dd
+  db.ref("attendance/" + today + "/" + entry.code).set(entry);
+}
+// Hapus siswa
+function deleteStudent(code){
+  db.ref("students/" + code).remove();
+}
+// Ambil absensi
+function loadAttendance(){
+  db.ref("attendance").on("value", snapshot=>{
+    if(snapshot.exists()){
+      let all=[];
+      snapshot.forEach(dateSnap=>{
+        let data=dateSnap.val();
+        all = all.concat(Object.values(data));
+      });
+      attendance = all;
+      localStorage.setItem('attendance', JSON.stringify(attendance));
+      renderAttendance();
+    }
+  });
+}
+
 </script>
 
 </body>
